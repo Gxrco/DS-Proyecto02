@@ -1,0 +1,3 @@
+Category,Adding_across,Adding_terms,Additive,Base_rate,Certainty,Definition,Denominator-only_change,Division,Duplication,Firstterm,FlipChange,Ignores_zeroes,Incomplete,Incorrect_equivalent_fraction_addition,Interior,Inverse_operation,Inversion,Irrelevant,Longer_is_bigger,Mult,Multiplying_by_4,Not_variable,Positive,Scale,Shorter_is_bigger,Subtraction,SwapDividend,Tacking,Unknowable,WNB,Whole_numbers_larger,Wrong_Operation,Wrong_fraction,Wrong_term
+False_Misconception,306,97,891,22,18,51,332,58,698,96,74,23,1446,7,50,21,409,409,23,345,93,153,564,179,6,618,198,128,282,291,328,6,685,550
+True_Misconception,1,0,38,1,0,3,4,5,6,11,4,0,8,2,0,0,5,88,1,8,3,1,2,0,17,2,8,162,0,8,1,0,6,8
