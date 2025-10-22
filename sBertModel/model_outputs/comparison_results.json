@@ -1,0 +1,9 @@
+{
+  "baseline_accuracy": 0.782,
+  "finetuned_accuracy": 0.85,
+  "improvement_absolute": 0.06799999999999995,
+  "improvement_percent": 8.695652173913036,
+  "model_name": "all-MiniLM-L6-v2",
+  "training_pairs": 2526,
+  "epochs": 3
+}
