@@ -175,9 +175,9 @@ print(embeddings.shape)
 # Get the similarity scores for the embeddings
 similarities = model.similarity(embeddings, embeddings)
 print(similarities)
-# tensor([[1.0000, 0.7640, 0.8163],
-#         [0.7640, 1.0000, 0.7073],
-#         [0.8163, 0.7073, 1.0000]])
+# tensor([[1.0000, 0.7803, 0.8508],
+#         [0.7803, 1.0000, 0.7527],
+#         [0.8508, 0.7527, 1.0000]])
 ```
 
 <!--
@@ -396,10 +396,10 @@ You can finetune this model on your own dataset.
 
 
 ### Framework Versions
-- Python: 3.10.2
+- Python: 3.12.1
 - Sentence Transformers: 5.1.2
 - Transformers: 4.57.1
-- PyTorch: 2.9.0
+- PyTorch: 2.9.0+cpu
 - Accelerate: 1.11.0
 - Datasets: 4.2.0
 - Tokenizers: 0.22.1
