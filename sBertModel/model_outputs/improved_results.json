@@ -1,0 +1,16 @@
+{
+  "baseline_accuracy": 0.782,
+  "finetuned_accuracy": 0.825,
+  "improved_accuracy": 0.847,
+  "model_name": "all-MiniLM-L6-v2",
+  "training_pairs": 2526,
+  "balanced_training_pairs": 12512,
+  "epochs": 3,
+  "smote_enabled": true,
+  "class_weights_enabled": true,
+  "training_samples_with_smote": 4782,
+  "improvements": {
+    "vs_baseline": 0.06499999999999995,
+    "vs_finetuned": 0.02200000000000002
+  }
+}
