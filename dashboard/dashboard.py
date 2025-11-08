@@ -166,8 +166,8 @@ with tab1:
                         category_model = load_model(INDIVIDUAL_MODELS_DIR / "category_model_rf.pkl")
                     elif model_choice == "SVM":
                         category_model = load_model(INDIVIDUAL_MODELS_DIR / "category_model_svm.pkl")
-                    else:  # MLP
-                        category_model = load_model(MODEL_OUTPUTS_DIR / "category_model_mlp.pkl")
+                    else:  # MLP - Modelo mejorado con SMOTE + Class Weights
+                        category_model = load_model(MODEL_OUTPUTS_DIR / "improved_classifier_smote_cw.pkl")
 
                     # Crear texto de entrada
                     input_text = create_input_text(question_text, mc_answer, student_explanation)
