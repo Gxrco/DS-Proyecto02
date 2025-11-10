@@ -1,11 +1,13 @@
+import json
+import warnings
+from pathlib import Path
+
+import altair as alt
+import numpy as np
+import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-import pandas as pd
-import numpy as np
-import pickle
-from pathlib import Path
 from sentence_transformers import SentenceTransformer
-import warnings
 
 warnings.filterwarnings('ignore')
 
@@ -36,6 +38,28 @@ def load_encoders():
     encoder_category = load_model(MODEL_OUTPUTS_DIR / "label_encoder_category.pkl")
     encoder_misconception = load_model(MODEL_OUTPUTS_DIR / "label_encoder_misconception.pkl")
     return encoder_category, encoder_misconception
+
+
+@st.cache_data(show_spinner=False)
+def load_algorithm_metrics():
+    """Carga métricas pre-calculadas para cada algoritmo"""
+    metrics_path = MODEL_OUTPUTS_DIR / "algorithm_metrics.json"
+    if not metrics_path.exists():
+        return None, None
+
+    with open(metrics_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    metrics = payload.get("metrics", {})
+    if not metrics:
+        return payload, pd.DataFrame()
+
+    metrics_df = (
+        pd.DataFrame.from_dict(metrics, orient="index")
+        .reset_index()
+        .rename(columns={"index": "algorithm"})
+    )
+    return payload, metrics_df
 
 # Función para crear el texto de entrada
 def create_input_text(question, answer, explanation):
@@ -108,7 +132,9 @@ def hierarchical_predict_top_k(features, category_model, misconception_model,
 
 st.title("Dashboard de Análisis de Explicaciones Estudiantiles")
 
-tab1, tab2 = st.tabs(["Clasificación de Explicaciones", "Dashboard Interactivo"])
+tab1, tab2, tab3 = st.tabs(
+    ["Clasificación de Explicaciones", "Dashboard Interactivo", "Resultados por Algoritmo"]
+)
 
 with tab1:
     st.markdown("## Clasificación de Nuevas Explicaciones Estudiantiles")
@@ -243,3 +269,109 @@ with tab2:
     powerbi_url = "https://app.powerbi.com/reportEmbed?reportId=fce866ce-b39f-448f-a290-d1b294affaa5&autoAuth=true&ctid=73c3e337-a317-4624-bb03-047663c4d9ed"
     st.markdown("### Dashboard Interactivo")
     components.iframe(powerbi_url, height=800, scrolling=True)
+
+with tab3:
+    st.markdown("### Resultados por Algoritmo")
+
+    metrics_meta, metrics_df = load_algorithm_metrics()
+
+    if metrics_meta is None or metrics_df is None or metrics_df.empty:
+        st.info(
+            "No se encontraron métricas pre-calculadas. "
+            "Ejecute el script de evaluación para generar `algorithm_metrics.json`."
+        )
+    else:
+        metric_cols = ["accuracy", "precision", "recall", "f1"]
+        updated_at = metrics_meta.get("updated_at", "N/A")
+        sample_count = metrics_meta.get("num_samples", 0)
+
+        st.caption(
+            f"Última actualización: {updated_at} · Registros evaluados: {sample_count:,}"
+        )
+
+        view_mode = st.radio(
+            "Modo de visualización",
+            ["Todos los algoritmos", "Por algoritmo"],
+            horizontal=True,
+        )
+
+        if view_mode == "Todos los algoritmos":
+            long_df = metrics_df.melt(
+                id_vars="algorithm",
+                value_vars=metric_cols,
+                var_name="metric",
+                value_name="value",
+            )
+            long_df["percentage"] = long_df["value"] * 100
+
+            chart = (
+                alt.Chart(long_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("metric:N", title="Métrica", sort=list(metric_cols)),
+                    y=alt.Y(
+                        "percentage:Q",
+                        title="Valor (%)",
+                        scale=alt.Scale(domain=[0, 100]),
+                    ),
+                    color=alt.Color("algorithm:N", title="Algoritmo"),
+                    tooltip=[
+                        alt.Tooltip("algorithm:N", title="Algoritmo"),
+                        alt.Tooltip("metric:N", title="Métrica"),
+                        alt.Tooltip("percentage:Q", title="Valor (%)", format=".2f"),
+                    ],
+                    xOffset="algorithm:N",
+                )
+                .properties(height=360)
+            )
+
+            st.altair_chart(chart, use_container_width=True)
+
+            table_df = metrics_df.rename(columns={"algorithm": "Algoritmo"}).copy()
+            for col in metric_cols:
+                table_df[col] = table_df[col].map(lambda v: f"{v * 100:.2f}%")
+
+            st.dataframe(
+                table_df,
+                hide_index=True,
+                use_container_width=True,
+            )
+
+            best_per_metric = (
+                metrics_df.set_index("algorithm")[metric_cols].idxmax().to_dict()
+            )
+            best_message = ", ".join(
+                f"{metric.capitalize()}: {algo}" for metric, algo in best_per_metric.items()
+            )
+            st.success(f"Mejores resultados: {best_message}")
+        else:
+            algorithm = st.selectbox("Seleccione el algoritmo", metrics_df["algorithm"])
+            selected = metrics_df.loc[metrics_df["algorithm"] == algorithm].iloc[0]
+
+            cols = st.columns(len(metric_cols))
+            for col, metric in zip(cols, metric_cols):
+                value = selected[metric] * 100
+                col.metric(metric.capitalize(), f"{value:.2f}%")
+
+            chart_df = pd.DataFrame(
+                {
+                    "Métrica": [m.capitalize() for m in metric_cols],
+                    "Valor (%)": [selected[m] * 100 for m in metric_cols],
+                }
+            )
+
+            chart = (
+                alt.Chart(chart_df)
+                .mark_line(point=True)
+                .encode(
+                    x=alt.X("Métrica:N", title="Métrica"),
+                    y=alt.Y("Valor (%):Q", title="Valor (%)", scale=alt.Scale(domain=[0, 100])),
+                    tooltip=["Métrica", "Valor (%)"],
+                )
+                .properties(height=320)
+            )
+            st.altair_chart(chart, use_container_width=True)
+
+            st.caption(
+                "Tip: cambie al modo *Todos los algoritmos* para comparar el rendimiento relativo."
+            )
