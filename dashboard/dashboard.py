@@ -1,4 +1,5 @@
 import json
+import pickle
 import warnings
 from pathlib import Path
 
@@ -289,89 +290,114 @@ with tab3:
             f"Última actualización: {updated_at} · Registros evaluados: {sample_count:,}"
         )
 
-        view_mode = st.radio(
-            "Modo de visualización",
-            ["Todos los algoritmos", "Por algoritmo"],
-            horizontal=True,
+        show_performance = st.toggle(
+            "Mostrar gráficas de rendimiento",
+            value=True,
+            help="Desactive esta opción para ocultar temporalmente las métricas y gráficas.",
         )
 
-        if view_mode == "Todos los algoritmos":
-            long_df = metrics_df.melt(
-                id_vars="algorithm",
-                value_vars=metric_cols,
-                var_name="metric",
-                value_name="value",
-            )
-            long_df["percentage"] = long_df["value"] * 100
-
-            chart = (
-                alt.Chart(long_df)
-                .mark_bar()
-                .encode(
-                    x=alt.X("metric:N", title="Métrica", sort=list(metric_cols)),
-                    y=alt.Y(
-                        "percentage:Q",
-                        title="Valor (%)",
-                        scale=alt.Scale(domain=[0, 100]),
-                    ),
-                    color=alt.Color("algorithm:N", title="Algoritmo"),
-                    tooltip=[
-                        alt.Tooltip("algorithm:N", title="Algoritmo"),
-                        alt.Tooltip("metric:N", title="Métrica"),
-                        alt.Tooltip("percentage:Q", title="Valor (%)", format=".2f"),
-                    ],
-                    xOffset="algorithm:N",
-                )
-                .properties(height=360)
-            )
-
-            st.altair_chart(chart, use_container_width=True)
-
-            table_df = metrics_df.rename(columns={"algorithm": "Algoritmo"}).copy()
-            for col in metric_cols:
-                table_df[col] = table_df[col].map(lambda v: f"{v * 100:.2f}%")
-
-            st.dataframe(
-                table_df,
-                hide_index=True,
-                use_container_width=True,
-            )
-
-            best_per_metric = (
-                metrics_df.set_index("algorithm")[metric_cols].idxmax().to_dict()
-            )
-            best_message = ", ".join(
-                f"{metric.capitalize()}: {algo}" for metric, algo in best_per_metric.items()
-            )
-            st.success(f"Mejores resultados: {best_message}")
+        if not show_performance:
+            st.info("Gráficas ocultas. Active el interruptor para volver a ver los resultados.")
         else:
-            algorithm = st.selectbox("Seleccione el algoritmo", metrics_df["algorithm"])
-            selected = metrics_df.loc[metrics_df["algorithm"] == algorithm].iloc[0]
-
-            cols = st.columns(len(metric_cols))
-            for col, metric in zip(cols, metric_cols):
-                value = selected[metric] * 100
-                col.metric(metric.capitalize(), f"{value:.2f}%")
-
-            chart_df = pd.DataFrame(
-                {
-                    "Métrica": [m.capitalize() for m in metric_cols],
-                    "Valor (%)": [selected[m] * 100 for m in metric_cols],
-                }
+            available_algorithms = metrics_df["algorithm"].tolist()
+            visible_algorithms = st.multiselect(
+                "Algoritmos a visualizar",
+                options=available_algorithms,
+                default=available_algorithms,
+                help="Desmarque alguno para ocultar sus métricas del dashboard.",
             )
 
-            chart = (
-                alt.Chart(chart_df)
-                .mark_line(point=True)
-                .encode(
-                    x=alt.X("Métrica:N", title="Métrica"),
-                    y=alt.Y("Valor (%):Q", title="Valor (%)", scale=alt.Scale(domain=[0, 100])),
-                    tooltip=["Métrica", "Valor (%)"],
+            if not visible_algorithms:
+                st.warning("Seleccione al menos un algoritmo para visualizar resultados.")
+            else:
+                filtered_df = (
+                    metrics_df[metrics_df["algorithm"].isin(visible_algorithms)]
+                    .reset_index(drop=True)
                 )
-                .properties(height=320)
-            )
-            st.altair_chart(chart, use_container_width=True)
 
-            st.caption(
-                "Tip: cambie al modo *Todos los algoritmos* para comparar el rendimiento relativo."
-            )
+                view_mode = st.radio(
+                    "Modo de visualización",
+                    ["Todos los algoritmos", "Por algoritmo"],
+                    horizontal=True,
+                )
+
+                if view_mode == "Todos los algoritmos":
+                    long_df = filtered_df.melt(
+                        id_vars="algorithm",
+                        value_vars=metric_cols,
+                        var_name="metric",
+                        value_name="value",
+                    )
+                    long_df["percentage"] = long_df["value"] * 100
+
+                    chart = (
+                        alt.Chart(long_df)
+                        .mark_bar()
+                        .encode(
+                            x=alt.X("metric:N", title="Métrica", sort=list(metric_cols)),
+                            y=alt.Y(
+                                "percentage:Q",
+                                title="Valor (%)",
+                                scale=alt.Scale(domain=[0, 100]),
+                            ),
+                            color=alt.Color("algorithm:N", title="Algoritmo"),
+                            tooltip=[
+                                alt.Tooltip("algorithm:N", title="Algoritmo"),
+                                alt.Tooltip("metric:N", title="Métrica"),
+                                alt.Tooltip("percentage:Q", title="Valor (%)", format=".2f"),
+                            ],
+                            xOffset="algorithm:N",
+                        )
+                        .properties(height=360)
+                    )
+
+                    st.altair_chart(chart, use_container_width=True)
+
+                    table_df = filtered_df.rename(columns={"algorithm": "Algoritmo"}).copy()
+                    for col in metric_cols:
+                        table_df[col] = table_df[col].map(lambda v: f"{v * 100:.2f}%")
+
+                    st.dataframe(
+                        table_df,
+                        hide_index=True,
+                        use_container_width=True,
+                    )
+
+                    best_per_metric = (
+                        filtered_df.set_index("algorithm")[metric_cols].idxmax().to_dict()
+                    )
+                    best_message = ", ".join(
+                        f"{metric.capitalize()}: {algo}" for metric, algo in best_per_metric.items()
+                    )
+                    st.success(f"Mejores resultados (visibles): {best_message}")
+                else:
+                    algorithm = st.selectbox("Seleccione el algoritmo", filtered_df["algorithm"])
+                    selected = filtered_df.loc[filtered_df["algorithm"] == algorithm].iloc[0]
+
+                    cols = st.columns(len(metric_cols))
+                    for col, metric in zip(cols, metric_cols):
+                        value = selected[metric] * 100
+                        col.metric(metric.capitalize(), f"{value:.2f}%")
+
+                    chart_df = pd.DataFrame(
+                        {
+                            "Métrica": [m.capitalize() for m in metric_cols],
+                            "Valor (%)": [selected[m] * 100 for m in metric_cols],
+                        }
+                    )
+
+                    chart = (
+                        alt.Chart(chart_df)
+                        .mark_line(point=True)
+                        .encode(
+                            x=alt.X("Métrica:N", title="Métrica"),
+                            y=alt.Y("Valor (%):Q", title="Valor (%)", scale=alt.Scale(domain=[0, 100])),
+                            tooltip=["Métrica", "Valor (%)"],
+                        )
+                        .properties(height=320)
+                    )
+                    st.altair_chart(chart, use_container_width=True)
+
+                    st.caption(
+                        "Tip: cambie al modo *Todos los algoritmos* o modifique la lista superior para comparar resultados."
+                    )
