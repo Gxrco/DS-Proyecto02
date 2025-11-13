@@ -244,7 +244,16 @@ with tab3:
                         col1, col2, col3 = st.columns([1, 2, 1])
 
                         with col1:
-                            st.metric(f"#{idx}", f"{prob*100:.2f}%")
+                            st.markdown(
+                                f"""
+                                <div style="text-align:center">
+                                  <div style="font-size:40px;font-weight:600">#{idx}</div>
+                                  <div style="font-size:40px;font-weight:700">{prob*100:.2f}%</div>
+                                  <div style="font-size:12px;color:gray">Confianza</div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
                         with col2:
                             st.markdown(f"**Categoría:** {category}")
