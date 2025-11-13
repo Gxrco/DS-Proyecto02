@@ -315,12 +315,6 @@ with tab2:
                     .reset_index(drop=True)
                 )
 
-                view_mode = st.radio(
-                    "Modo de visualización",
-                    ["Todos los algoritmos", "Por algoritmo"],
-                    horizontal=True,
-                )
-
                 if view_mode == "Todos los algoritmos":
                     long_df = filtered_df.melt(
                         id_vars="algorithm",
