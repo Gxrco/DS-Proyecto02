@@ -134,10 +134,10 @@ def hierarchical_predict_top_k(features, category_model, misconception_model,
 st.title("Dashboard de Análisis de Explicaciones Estudiantiles")
 
 tab1, tab2, tab3 = st.tabs(
-    ["Clasificación de Explicaciones", "Dashboard Interactivo", "Resultados por Algoritmo"]
+    ["Dashboard Interactivo", "Resultados por Algoritmo", "Clasificación de Explicaciones"]
 )
 
-with tab1:
+with tab3:
     st.markdown("## Clasificación de Nuevas Explicaciones Estudiantiles")
     st.markdown("Ingrese los datos de una explicación estudiantil para clasificarla usando los modelos entrenados.")
 
@@ -266,12 +266,12 @@ with tab1:
                     st.error(f"Error durante la clasificación: {e}")
                     st.exception(e)
 
-with tab2:
+with tab1:
     powerbi_url = "https://app.powerbi.com/reportEmbed?reportId=fce866ce-b39f-448f-a290-d1b294affaa5&autoAuth=true&ctid=73c3e337-a317-4624-bb03-047663c4d9ed"
     st.markdown("### Dashboard Interactivo")
     components.iframe(powerbi_url, height=800, scrolling=True)
 
-with tab3:
+with tab2:
     st.markdown("### Resultados por Algoritmo")
 
     metrics_meta, metrics_df = load_algorithm_metrics()
