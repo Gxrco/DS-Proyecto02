@@ -315,6 +315,7 @@ with tab2:
                     .reset_index(drop=True)
                 )
 
+                view_mode = "Todos los algoritmos"
                 if view_mode == "Todos los algoritmos":
                     long_df = filtered_df.melt(
                         id_vars="algorithm",
